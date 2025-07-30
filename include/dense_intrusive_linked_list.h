@@ -141,7 +141,7 @@ namespace mlc {
                 if (!this->data.empty()) this->data.erase(this->data.begin() + 0);
                 return;
             } 
-            
+
             /**
              * Erases the node at the back of the list.
              * @note Must not be called on an empty list.
@@ -182,6 +182,18 @@ namespace mlc {
                 throw("Nothing has been added to the linked list!\n");
             }
 
+            reference begin() {
+
+            }
+
+            reference cbegin() {
+
+            }
+
+            reference rbegin() {
+
+            }
+
             /**
              * Retrieves a reference to the node at the back of the list.
              * @note Must not be called on an empty list.
@@ -190,6 +202,18 @@ namespace mlc {
 
                 if (!this->data.empty()) return *(this->data.back());
                 throw("Nothing has been added to the linked list!\n");
+            }
+            reference end() {
+
+                
+            }
+            
+            reference rend() {
+
+            }
+
+            reference cend() {
+
             }
 
             /**
