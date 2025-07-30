@@ -13,6 +13,7 @@
 
 # Linker files
 *.ilk
+test_dense_list
 
 # Debugger Files
 *.pdb
