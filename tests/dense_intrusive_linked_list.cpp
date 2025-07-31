@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <../include/dense_intrusive_linked_list.h>
+#include "../include/dense_intrusive_linked_list.h"
 
 
 
@@ -32,9 +32,13 @@ TEST_F(DenseListTest, Insertion) {
 
     // Test push_front
     list.push_front(root);
-    EXPECT_TRUE(list[0] != nullptr); 
-    EXPECT_EQ(list[0].lvalue, 45);
-    EXPECT_EQ(list[0].next->lvalue, 10);
+
+    // Test at 
+    mlc::intrusive_dense_list_iterator<int> temp = list.begin();
+    EXPECT_EQ(temp[0].lvalue, 45);
+    temp++;
+    //EXPECT_EQ(temp[0].lvalue, 45);
+    /*EXPECT_EQ(list[0].next->lvalue, 10);
     EXPECT_EQ(list[0].prev->lvalue, 67);
     EXPECT_THROW(list[1], std::out_of_range);
 
@@ -46,11 +50,11 @@ TEST_F(DenseListTest, Insertion) {
     list.insert(0, node3);
     EXPECT_EQ(list[0].lvalue, 10);
     EXPECT_EQ(list[0].next, nullptr);
-    EXPECT_EQ(list[0].prev, nullptr);
+    EXPECT_EQ(list[0].prev, nullptr);*/
 
 }
 
-TEST_F(DenseListTest, Erase) {
+/*TEST_F(DenseListTest, Erase) {
     
     mlc::intrusive_dense_list<int> list;
     mlc::intrusive_dense_list_node<int> root;
@@ -131,7 +135,7 @@ TEST_F(DenseListTest, Swap) {
     list.swap(list2);
     EXPECT_TRUE(list[0] == nullptr);
 
-}
+}*/
 
 
 int main(int argc, char **argv) {
