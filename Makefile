@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++20 -g -O3 -fPIC
+CXXFLAGS := -std=c++20 -g -O3 -fPIC -fno-rtti -fno-exceptions
 LDFLAGS := -L ./tests -lgtest -lgtest_main -pthread
 
 

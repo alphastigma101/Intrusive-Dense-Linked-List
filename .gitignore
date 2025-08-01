@@ -14,7 +14,6 @@
 # Linker files
 *.ilk
 test_dense_list
-.vscode/
 
 # Debugger Files
 *.pdb

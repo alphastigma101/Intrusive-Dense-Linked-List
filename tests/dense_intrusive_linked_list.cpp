@@ -19,9 +19,7 @@ class DenseListTest : public ::testing::Test {
 TEST_F(DenseListTest, Insertion) {
     
     mlc::intrusive_dense_list<int> list;
-    mlc::intrusive_dense_list_node<int> root;
-    mlc::intrusive_dense_list_node<int> node2;
-    mlc::intrusive_dense_list_node<int> node3;
+    mlc::intrusive_dense_list_node<int> root, new_root, node2, node3, node4, node5;
 
     // Initialize the node 
     root.lvalue = 45;
@@ -29,25 +27,47 @@ TEST_F(DenseListTest, Insertion) {
     node3.lvalue = 10;
     root.next = &node3;
     root.prev = &node2;
+    root.next->prev = &root;
+    //node5.lvalue = 44;
 
-    // Test push_front
-    list.push_front(root);
+    new_root.lvalue = 90;
+    new_root.prev = &root;
+    new_root.next = &node4;
 
-    // Test at 
-    mlc::intrusive_dense_list_iterator<int> temp = list.begin();
-    EXPECT_EQ(temp[0].lvalue, 45);
-    temp++;
-    //EXPECT_EQ(temp[0].lvalue, 45);
-    /*EXPECT_EQ(list[0].next->lvalue, 10);
-    EXPECT_EQ(list[0].prev->lvalue, 67);
-    EXPECT_THROW(list[1], std::out_of_range);
+
+    // Test push_back 
+    list.push_back(root);
+    list.push_node_front(new_root);
+
+    // Test begin
+    mlc::intrusive_dense_list_iterator<int> iter1 = list.node_begin();
+    // Should start at root
+    //EXPECT_EQ(iter1[0].lvalue, 45);
+
+    // Test the cycling
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 90);
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 10);
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 45); // this is the root 
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 67);
+
+    // Testing the cycle
+    //iter1++;
+    //EXPECT_EQ(iter1[0].lvalue, 45);
+
+
+    // Test out of range
+    //EXPECT_THROW(iter1[1], std::out_of_range);
 
     // Test push_back
-    list.push_back(root);
-    EXPECT_TRUE(list[1] != nullptr); 
+    //list.push_back(root);
+    //EXPECT_NE(iter1[1], nullptr); 
 
     // Test insert 
-    list.insert(0, node3);
+    /*list.insert(0, node3);
     EXPECT_EQ(list[0].lvalue, 10);
     EXPECT_EQ(list[0].next, nullptr);
     EXPECT_EQ(list[0].prev, nullptr);*/
