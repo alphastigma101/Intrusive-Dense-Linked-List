@@ -65,9 +65,9 @@ namespace mlc {
             intrusive_dense_list_iterator& operator=(const intrusive_dense_list_iterator& other) = default;
 
             explicit intrusive_dense_list_iterator(node_type& data) : current_node(std::move(&data)) {
-                std::cout << "current_node value is : " << current_node->lvalue << std::endl;
-                std::cout << "current_node->prev value is : " << current_node->prev->lvalue << std::endl;
-                std::cout << "current_node->prev->prev value is : " << current_node->prev->prev->lvalue << std::endl;
+                //std::cout << "current_node value is : " << current_node->lvalue << std::endl;
+                //std::cout << "current_node->prev value is : " << current_node->prev->lvalue << std::endl;
+                //std::cout << "current_node->prev->prev value is : " << current_node->prev->prev->lvalue << std::endl;
             }
 
             intrusive_dense_list_iterator& operator++() {
@@ -76,12 +76,14 @@ namespace mlc {
                 else return *this;
                 return *this;
             }
+
             intrusive_dense_list_iterator& operator--() {
 
                 if (current_node->prev) current_node = current_node->prev;
                 else return *this;
                 return *this;
             }
+            
             /** -------------------------------------------------
              * @brief Post Increment operator that gets called after operator()++ it will then increment the instance of this class
              * @param int ...
@@ -120,8 +122,7 @@ namespace mlc {
             const_reference operator[](uint16_t index) {
                 
                 if (intrusive_dense_list_iterator<T>::data.empty()) intrusive_dense_list_iterator<T>::data.swap(intrusive_dense_list<T>::data);
-                current_node = data.at(static_cast<size_t>(index));
-                return static_cast<reference>(*current_node);
+                return static_cast<reference>(*data.at(static_cast<size_t>(index)));
             } 
             
             /**

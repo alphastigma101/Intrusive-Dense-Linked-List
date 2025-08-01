@@ -46,9 +46,9 @@ TEST_F(DenseListTest, Insertion) {
 
     // Test the cycling
     iter1++;
-    EXPECT_EQ(iter1[0].lvalue, 90);
-    iter1--;
     EXPECT_EQ(iter1[0].lvalue, 10);
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 90);
     iter1--;
     EXPECT_EQ(iter1[0].lvalue, 45); // this is the root 
     iter1--;
