@@ -30,40 +30,39 @@ static void TEST_CYCLING() {
         mlc::intrusive_dense_list_iterator<int> iter1 = list.node_begin();
 
         // Test one
-        std::cout << "iter1[0].lvalue == 45 : ";
+        std::cout << "iter1[0].lvalue == 10 : ";
         static std::string lhs = std::to_string(iter1[0].lvalue);
-        static std::string rhs = std::to_string(45).c_str();
+        static std::string rhs = std::to_string(10).c_str();
         static std::string err = "TEST ONE FAILED:\n\t Value Expected : ";
+        err.append(rhs.c_str()).append("\n\t").append("Value Is : ").append(lhs.c_str()).append("\n");
+        iter1[0].lvalue == 10 ? std::cout << "PASSED\n" : throw std::runtime_error(err.c_str());
+
+        // Test two
+        iter1--;
+        std::cout << "iter1[0].lvalue == 90 : ";
+        lhs = std::to_string(iter1[0].lvalue);
+        rhs = std::to_string(90).c_str();
+        err = "TEST TWO FAILED:\n\t Value Expected : ";
+        err.append(rhs.c_str()).append("\n\t").append("Value Is : ").append(lhs.c_str()).append("\n");
+        iter1[0].lvalue == 90 ? std::cout << "PASSED\n" : throw std::runtime_error(err.c_str());
+
+        // Testing three
+        iter1--;
+        std::cout << "iter1[0].lvalue == 45 : ";
+        lhs = std::to_string(iter1[0].lvalue);
+        rhs = std::to_string(45).c_str();
+        err = "TEST THREE FAILED:\n\t Value Expected : ";
         err.append(rhs.c_str()).append("\n\t").append("Value Is : ").append(lhs.c_str()).append("\n");
         iter1[0].lvalue == 45 ? std::cout << "PASSED\n" : throw std::runtime_error(err.c_str());
 
-        // Test two
+        // Testing Four
         iter1--;
         std::cout << "iter1[0].lvalue == 67 : ";
         lhs = std::to_string(iter1[0].lvalue);
         rhs = std::to_string(67).c_str();
-        err = "TEST TWO FAILED:\n\t Value Expected : ";
-        err.append(rhs.c_str()).append("\n\t").append("Value Is : ").append(lhs.c_str()).append("\n");
-        iter1[0].lvalue == 67 ? std::cout << "PASSED\n" : throw std::runtime_error(err.c_str());
-
-        // Testing three
-        iter1++;
-        iter1++;
-        std::cout << "iter1[0].lvalue == 90 : ";
-        lhs = std::to_string(iter1[0].lvalue);
-        rhs = std::to_string(90).c_str();
-        err = "TEST THREE FAILED:\n\t Value Expected : ";
-        err.append(rhs.c_str()).append("\n\t").append("Value Is : ").append(lhs.c_str()).append("\n");
-        iter1[0].lvalue == 90 ? std::cout << "PASSED\n" : throw std::runtime_error(err.c_str());
-
-        // Testing Four
-        iter1++;
-        std::cout << "iter1[0].lvalue == 10 : ";
-        lhs = std::to_string(iter1[0].lvalue);
-        rhs = std::to_string(10).c_str();
         err = "\nTEST FOUR FAILED:\n\t Value Expected : ";
         err.append(rhs.c_str()).append("\n\t").append("Value Is : ").append(lhs.c_str()).append("\n");
-        iter1[0].lvalue == 10 ? std::cout << "PASSED\n" : throw std::runtime_error(err.c_str());
+        iter1[0].lvalue == 67 ? std::cout << "PASSED\n" : throw std::runtime_error(err.c_str());
 
     } catch(std::runtime_error& e) { std::cout << e.what() << std::endl; }
 }

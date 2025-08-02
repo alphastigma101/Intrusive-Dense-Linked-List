@@ -71,9 +71,15 @@ namespace mlc {
              *        Whever you add or remove a node, this constructor will get called and will update the private member `current_node`
              * -------------------------------------------
             */
-            explicit intrusive_dense_list_iterator(node_type& data) : current_node(&data) {}
+            explicit intrusive_dense_list_iterator(node_type& data) : current_node(&data) {
+                std::cout << "\n===== DEBUGGING INTRUSIVE_DENSE_LIST_ITERATOR =====\n";
 
-            
+                std::cout << "current_node.lvaue is : " << current_node->lvalue << std::endl;
+                if (current_node->next) std::cout << "current_node->next lvalue is : " << current_node->next->lvalue << std::endl;
+                std::cout << "current_node->prev is : " << current_node->prev->lvalue << std::endl;
+
+            }
+
             /** -------------------------------------------
              * @brief An operator that increments private data member current_node to the next node
              * 
@@ -174,6 +180,9 @@ namespace mlc {
 
                     intrusive_dense_list_iterator<T>::data.swap(intrusive_dense_list<T>::data);
                     intrusive_dense_list_iterator<T>::data.at(static_cast<size_t>(index)) = current_node;
+                    // Vector either should contain share_ptr's or unique_ptr's 
+                    // Looks like if I am able to wrap a shared_ptr around the raw pointer that the unique_ptr is managing, it will keep it alive
+                    std::unique_ptr<node_type> temp = std::make_unique<node_type>(*current_node);
 
                 }
 
@@ -198,10 +207,34 @@ namespace mlc {
         
         private:
 
-            inline static std::vector<intrusive_dense_list_node<T>*> data;
-            node_type* current_node = nullptr;
+            inline static std::vector<intrusive_dense_list_node<T>*> data; // Test to see if raw pointers work first. Both data data members should be converted into shared_ptr's
+            node_type* current_node = nullptr; // This must stay raw. 
             inline static node_type* cached_node = nullptr;
     };
+
+    //template <typename T>
+    /*class ts_iterator {
+        node_type* current;
+        mutable std::mutex mtx;
+
+        public:
+            ts_iterator(node_type* node) : current(node) {}
+
+            // Thread-safe ++
+            ts_iterator& operator++() {
+                std::lock_guard<std::mutex> lock(mtx);
+                if (current) current = current->next;
+                return *this;
+            }
+
+            // Thread-safe dereference
+            T& operator*() const {
+                std::lock_guard<std::mutex> lock(mtx);
+                return *current;
+            }
+
+            // ... other iterator methods ...
+    };*/
 
     template<typename T>
     class intrusive_dense_list {
@@ -226,10 +259,7 @@ namespace mlc {
              * @param location The location to insert the node.
              * @param new_node The node to add.
             */
-            iterator insert_node(iterator location, reference new_node)
-            {
-                return insert_node_before(location, new_node);
-            }
+            iterator insert_node(iterator location, reference new_node) { return insert_node_before(location, new_node); }
 
             /** ---------------------------------------------
              * @brief A function that has direct access to the vector and will insert the node at a given position
@@ -252,43 +282,14 @@ namespace mlc {
             */
             iterator insert_node_before(iterator location, reference new_node) {
                 
-                std::cout << "=== Inserting node with value: " << new_node.lvalue << " ===" << std::endl;
                 auto existing_node = location.AsNodePointer();
-                std::cout << "Existing node value: " << existing_node.lvalue << std::endl;
                 
-
-                if (existing_node.prev) {
-                    std::cout << "Previous node value: " << existing_node.prev->lvalue << std::endl;
-                } else {
-                    std::cout << "No previous node (inserting at beginning)" << std::endl;
-                }
-                
-                // Set new node's links
                 new_node.next = &existing_node;
                 new_node.prev = existing_node.prev;
-                std::cout << "Set new_node.next to node with value: " << existing_node.lvalue << std::endl;
-                
-                
-                if (existing_node.prev) {
-                    std::cout << "Updating previous node's next from " 
-                            << existing_node.prev->next->lvalue
-                            << " to " << new_node.lvalue << std::endl;
-                    existing_node.prev->next = &new_node;
-                }
-                
+                existing_node.prev->next = &new_node;
                 existing_node.prev = &new_node;
-                std::cout << "Updated existing node's prev from "
-                        << (new_node.prev ? std::to_string(new_node.prev->lvalue) : "null") 
-                        << " to " << new_node.lvalue << std::endl;
-                
-            
-                std::cout << "Final links:" << std::endl;
-                std::cout << new_node.lvalue << " <-prev- " << existing_node.lvalue << std::endl;
-                if (new_node.prev) {
-                    std::cout << new_node.prev->lvalue << " -next-> " << new_node.lvalue << std::endl;
-                }
 
-                root = &new_node;
+                root = std::make_shared<reference>(new_node);
 
                 // TODO: Make a wrapper around this function that executes heavy functions
                 broken_linkage();
@@ -321,7 +322,6 @@ namespace mlc {
             void push_node_front(reference new_node)
             {
                 assert(!node_empty());
-                cached_root = root; // Always sync the cached_root node with the node 
                 insert_node(node_begin(), new_node);
             }
 
@@ -344,9 +344,9 @@ namespace mlc {
             void push_back(reference node) {
 
                 if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
-                root = &node;
-                cached_root = root;
-                data.push_back(&node);
+                root = std::make_shared<reference>(node);
+                data.push_back(root.get());
+
             }
 
             /**
@@ -394,8 +394,8 @@ namespace mlc {
             */
             bool node_empty() const { 
 
-                assert(root != nullptr);
-                return root->next == root; 
+                assert(root.get() != nullptr);
+                return root->next == root.get(); 
             }           
             bool empty() const { 
 
@@ -493,8 +493,15 @@ namespace mlc {
             iterator node_begin(const uint16_t idx = -1) { 
 
                 if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
-                //if (idx != -1) root = data.at(idx);
-                if (root == nullptr) root = *data.begin();
+                //if (&idx) root = data.at(idx);
+                if (root.get() == nullptr) {
+                    std::cout << "\n===== NODE_BEGIN() ======\n";
+                    std::cout << "root is nullptr. Updating it with the front element of the backend!\n";
+                    //auto node = std::make_shared<reference>(*data.begin());
+                    exit(0);
+                    //root.swap(*node);
+
+                }
 
                 return iterator(*root->next);
             }
@@ -644,7 +651,9 @@ namespace mlc {
                 return *data.crend().get(); 
             }
             // ===================================
+
         protected:
+
             /** ------------------------------------
              * @brief Function that fixes the linkage for the linked list by operating on the `cached_root`
              *        We cannot use `root` directly as it is used in other operations. 
@@ -655,41 +664,33 @@ namespace mlc {
             */
             inline static void* broken_linkage() {
 
-                auto state = cached_root;
+                reference* c_state = root.get();
+                reference* p_state = c_state;
 
                 // Check for any breakage here
-                if (cached_root->prev->next) cached_root = cached_root->prev;
-                else cached_root->prev->next = cached_root;
+                if (p_state->prev->next) p_state = p_state->prev;
+                else p_state->prev->next = p_state;
 
                 // Make sure all previous nodes are linked
-                while (cached_root) {
+                while (p_state) {
 
-                    if (!cached_root->next) cached_root->next = state;
-                    cached_root = cached_root->prev;
-                    state = state->prev;
+                    if (!p_state->next) p_state->next = c_state;
+                    p_state = p_state->prev;
+                    c_state = c_state->prev;
 
                 }
 
-                cached_root = std::move(state);
+                // Shift it to the begining
+                while(c_state->prev) { c_state = c_state->prev; }
 
-                // Sync the root back 
-                root = std::move(cached_root);
-                std::cout << "\n=== BROKEN_LINKAGE() ===\n";
-                std::cout << "root.lvalue is : " << root->lvalue << std::endl; // Expect 67
-                std::cout << "root->next->lvalue is : " << root->next->lvalue << std::endl; // Expect 45
-                std::cout << "root->next->next->lvalue is : " << root->next->next->lvalue << std::endl; // Expect 90
-                std::cout << "root->next->next->next->lvalue is : " << root->next->next->next->lvalue << std::endl; // Expect 10
-                std::cout << "=============================\n";
                 
-
-
                 return nullptr;
+
             };
 
         private:
 
-            inline static intrusive_dense_list_node<T>* root = nullptr;
-            inline static intrusive_dense_list_node<T>* cached_root = nullptr;
+            inline static std::shared_ptr<intrusive_dense_list_node<T>> root;            
             inline static std::vector<intrusive_dense_list_node<T>*> data;
     };
 
