@@ -12,6 +12,8 @@
 #include <memory>
 #include <type_traits>
 #include <vector>
+#include <cassert>
+#include <iostream>
 
 //#include "assert.hpp"
 
@@ -64,32 +66,45 @@ namespace mlc {
             intrusive_dense_list_iterator(const intrusive_dense_list_iterator& other) = default;
             intrusive_dense_list_iterator& operator=(const intrusive_dense_list_iterator& other) = default;
 
-            explicit intrusive_dense_list_iterator(node_type& data) : current_node(std::move(&data)) {
-                //std::cout << "current_node value is : " << current_node->lvalue << std::endl;
-                //std::cout << "current_node->prev value is : " << current_node->prev->lvalue << std::endl;
-                //std::cout << "current_node->prev->prev value is : " << current_node->prev->prev->lvalue << std::endl;
-            }
+            /** ------------------------------------------
+             * @brief A constructor that consists of a series of operators that can be used to iterate through the linked list.
+             *        Whever you add or remove a node, this constructor will get called and will update the private member `current_node`
+             * -------------------------------------------
+            */
+            explicit intrusive_dense_list_iterator(node_type& data) : current_node(&data) {}
 
+            
+            /** -------------------------------------------
+             * @brief An operator that increments private data member current_node to the next node
+             * 
+             * @note Is only accessable by intrusive_dense_list_iterator<T> object
+             * --------------------------------------------
+            */
             intrusive_dense_list_iterator& operator++() {
                
-                if (current_node->next) current_node = current_node->next;
+                if (current_node) current_node = current_node->next;
                 else return *this;
                 return *this;
             }
 
+            /** -------------------------------------------
+             * @brief An de-increment operator that gets called after operator++()
+             * 
+             * @note Is only accessable by intrusive_dense_list_iterator<T> object
+             * --------------------------------------------
+            */
             intrusive_dense_list_iterator& operator--() {
 
-                if (current_node->prev) current_node = current_node->prev;
+                if (current_node) current_node = current_node->prev;
                 else return *this;
                 return *this;
             }
-            
-            /** -------------------------------------------------
-             * @brief Post Increment operator that gets called after operator()++ it will then increment the instance of this class
-             * @param int ...
+
+            /** -------------------------------------------
+             * @brief An post increment operator that gets called after operator++()
              * 
-             * 
-             * --------------------------------------------------
+             * @note Is only accessable by intrusive_dense_list_iterator<T> object
+             * --------------------------------------------
             */
             intrusive_dense_list_iterator operator++(int)
             {
@@ -97,6 +112,13 @@ namespace mlc {
                 ++(*this);
                 return it;
             }
+
+            /** -------------------------------------------
+             * @brief An post de-increment operator that gets called after operator--()
+             * 
+             * @note Is only accessable by intrusive_dense_list_iterator<T> object
+             * --------------------------------------------
+            */
             intrusive_dense_list_iterator operator--(int)
             {
                 intrusive_dense_list_iterator it(*this);
@@ -104,13 +126,39 @@ namespace mlc {
                 return it;
             }
 
+            // TODO: THIS DOC STRING WILL NEED TO BE UPDATED
+            /** -------------------------------------------
+             * @brief An equality operator that only works if left-hand side is the same type as right-hand side
+             * 
+             * @note A good example would be:
+             *       for (auto it = container.begin(); it != container.end(); ++it) {
+             *          cout << *it << " ";
+             *        }
+             * --------------------------------------------
+            */
             bool operator==(const intrusive_dense_list_iterator& other) const
             {
                 return current_node.get() == other.current_node.get();
             }
+
+            /** -------------------------------------------
+             * @brief An non-equality operator that only works if left-hand side is the same type as right-hand side
+             * 
+             * @note A good example would be:
+             *       for (auto it = container.begin(); it != container.end(); ++it) {
+             *          cout << *it << " ";
+             *        }
+             * --------------------------------------------
+            */
             bool operator!=(const intrusive_dense_list_iterator& other) const
             {
                 return !operator==(other);
+            }
+
+            // TODO: This function will need to be tested.
+            bool operator=(const intrusive_dense_list_iterator& other) const {
+
+                return current_node == other;
             }
 
             reference operator*() const
@@ -120,9 +168,18 @@ namespace mlc {
 
             // Indicing Support
             const_reference operator[](uint16_t index) {
-                
-                if (intrusive_dense_list_iterator<T>::data.empty()) intrusive_dense_list_iterator<T>::data.swap(intrusive_dense_list<T>::data);
-                return static_cast<reference>(*data.at(static_cast<size_t>(index)));
+
+                // Update the backend 
+                if (intrusive_dense_list_iterator<T>::data.empty()) {
+
+                    intrusive_dense_list_iterator<T>::data.swap(intrusive_dense_list<T>::data);
+                    intrusive_dense_list_iterator<T>::data.at(static_cast<size_t>(index)) = current_node;
+
+                }
+
+                // TODO: Executing test_dense_list causes a segfault here, but when executing ./mem_check, there is no segfaults what so ever
+
+                return static_cast<reference>(*current_node);
             } 
             
             /**
@@ -143,6 +200,7 @@ namespace mlc {
 
             inline static std::vector<intrusive_dense_list_node<T>*> data;
             node_type* current_node = nullptr;
+            inline static node_type* cached_node = nullptr;
     };
 
     template<typename T>
@@ -183,10 +241,7 @@ namespace mlc {
              * @return nothing
              * 
             */
-            void insert(uint16_t idx, reference node) {
-
-                data.insert(data.begin() + idx, &node);
-            }
+            void insert(uint16_t idx, reference node) { data.insert(data.begin() + idx, &node); }
 
             /** ------------------------------------------------------------------
              * @brief Inserts a node at the given location, moving the previous
@@ -198,42 +253,47 @@ namespace mlc {
             iterator insert_node_before(iterator location, reference new_node) {
                 
                 std::cout << "=== Inserting node with value: " << new_node.lvalue << " ===" << std::endl;
-                auto existing_node = std::make_unique<reference>(location.AsNodePointer());
-                std::cout << "Existing node value: " << existing_node->lvalue << std::endl;
+                auto existing_node = location.AsNodePointer();
+                std::cout << "Existing node value: " << existing_node.lvalue << std::endl;
                 
 
-                if (existing_node->prev) {
-                    std::cout << "Previous node value: " << existing_node->prev->lvalue << std::endl;
+                if (existing_node.prev) {
+                    std::cout << "Previous node value: " << existing_node.prev->lvalue << std::endl;
                 } else {
                     std::cout << "No previous node (inserting at beginning)" << std::endl;
                 }
                 
                 // Set new node's links
-                new_node.next = existing_node.get();
-                new_node.prev = existing_node->prev;
-                std::cout << "Set new_node.next to node with value: " << existing_node->lvalue << std::endl;
+                new_node.next = &existing_node;
+                new_node.prev = existing_node.prev;
+                std::cout << "Set new_node.next to node with value: " << existing_node.lvalue << std::endl;
                 
                 
-                if (existing_node->prev) {
+                if (existing_node.prev) {
                     std::cout << "Updating previous node's next from " 
-                            << existing_node->prev->next->lvalue
+                            << existing_node.prev->next->lvalue
                             << " to " << new_node.lvalue << std::endl;
-                    existing_node->prev->next = &new_node;
+                    existing_node.prev->next = &new_node;
                 }
                 
-                existing_node->prev = &new_node;
+                existing_node.prev = &new_node;
                 std::cout << "Updated existing node's prev from "
                         << (new_node.prev ? std::to_string(new_node.prev->lvalue) : "null") 
                         << " to " << new_node.lvalue << std::endl;
                 
             
                 std::cout << "Final links:" << std::endl;
-                std::cout << new_node.lvalue << " <-prev- " << existing_node->lvalue << std::endl;
+                std::cout << new_node.lvalue << " <-prev- " << existing_node.lvalue << std::endl;
                 if (new_node.prev) {
                     std::cout << new_node.prev->lvalue << " -next-> " << new_node.lvalue << std::endl;
                 }
 
-                return iterator(new_node);
+                root = &new_node;
+
+                // TODO: Make a wrapper around this function that executes heavy functions
+                broken_linkage();
+
+                return iterator(*root);
             }
 
             /** ----------------------------------------------------------------------------
@@ -260,7 +320,8 @@ namespace mlc {
             */
             void push_node_front(reference new_node)
             {
-                assert(!empty()); 
+                assert(!node_empty());
+                cached_root = root; // Always sync the cached_root node with the node 
                 insert_node(node_begin(), new_node);
             }
 
@@ -283,6 +344,8 @@ namespace mlc {
             void push_back(reference node) {
 
                 if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
+                root = &node;
+                cached_root = root;
                 data.push_back(&node);
             }
 
@@ -292,7 +355,7 @@ namespace mlc {
              */
             void pop_node_front()
             {
-                static_assert(!node_empty());
+                assert(!node_empty());
                 erase(node_begin());
             }
 
@@ -302,7 +365,7 @@ namespace mlc {
              */
             void pop_node_back()
             {
-                static_assert(!node_empty());
+                assert(!node_empty());
                 node_erase(--node_end());
             }
 
@@ -331,10 +394,14 @@ namespace mlc {
             */
             bool node_empty() const { 
 
-                assert(root.get() != nullptr);
-                return root->next == root.get(); 
+                assert(root != nullptr);
+                return root->next == root; 
             }           
-            bool empty() const { return data.empty(); }
+            bool empty() const { 
+
+                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
+                return data.empty(); 
+            }
 
             /** -------------------------------------------------------------
              * @brief Gets the total number of elements within this list.
@@ -354,7 +421,7 @@ namespace mlc {
              */
             reference node_front()
             {
-                static_assert(!node_empty());
+                assert(!node_empty());
                 return node_begin();
             }
 
@@ -367,7 +434,7 @@ namespace mlc {
             reference front() {   
 
                 if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
-                static_assert(!empty());
+                assert(!empty());
                 return *data.begin().get();
             }
 
@@ -377,7 +444,7 @@ namespace mlc {
              */
             const_reference node_front() const
             {
-                static_assert(!node_empty());
+                assert(!node_empty());
                 return node_begin();
             }
 
@@ -397,7 +464,7 @@ namespace mlc {
              */
             const_reference node_back() const
             {
-                static_assert(!node_empty());
+                assert(!node_empty());
                 return *--node_end();
             }
 
@@ -416,24 +483,32 @@ namespace mlc {
             }
             
             // ===== ITERATOR INTERFACE =====
-            iterator node_begin() { 
+            /** ------------------------------
+             * @brief A function that will get the begining of the node from the backend at 0 or get the begining of a node at a certain place in the backend 
+             * 
+             * @param idx is a default parameter. If you wish 
+             * 
+             * @return Copy of intrusive_dense_list_iterator<T> from the backend
+            */
+            iterator node_begin(const uint16_t idx = -1) { 
 
-                if (root == nullptr) {
-                    root = *data.begin();
-                }
-                return iterator(*root->next); 
+                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
+                //if (idx != -1) root = data.at(idx);
+                if (root == nullptr) root = *data.begin();
+
+                return iterator(*root->next);
             }
-            const_iterator node_begin() const { return const_iterator(*root->next);  }
-            const_iterator node_cbegin() const { return node_begin(); }
-            iterator node_end() { return iterator(*root.get()); }
-            const_iterator node_end() const { return const_iterator(*root.get()); }
-            const_iterator node_cend() const { return node_end(); }
-            reverse_iterator node_rbegin() { return reverse_iterator(node_end()); }
-            const_reverse_iterator node_rbegin() const { return const_reverse_iterator(node_end()); }
-            const_reverse_iterator node_crbegin() const { return node_rbegin(); }
-            reverse_iterator node_rend() { return reverse_iterator(node_begin()); }
-            const_reverse_iterator node_rend() const { return const_reverse_iterator(node_begin()); }
-            const_reverse_iterator node_crend() const { return node_rend(); }
+            const_iterator node_begin(uint16_t idx = -1) const { return const_iterator(*root->next);  }
+            const_iterator node_cbegin(uint16_t idx = -1) const { return node_begin(); }
+            iterator node_end(uint16_t idx = -1) { return iterator(*root.get()); }
+            const_iterator node_end(uint16_t idx = -1) const { return const_iterator(*root.get()); }
+            const_iterator node_cend(uint16_t idx = -1) const { return node_end(); }
+            reverse_iterator node_rbegin(uint16_t idx = -1) { return reverse_iterator(node_end()); }
+            const_reverse_iterator node_rbegin(uint16_t idx = -1) const { return const_reverse_iterator(node_end()); }
+            const_reverse_iterator node_crbegin(uint16_t idx = -1) const { return node_rbegin(); }
+            reverse_iterator node_rend(uint16_t idx = -1) { return reverse_iterator(node_begin()); }
+            const_reverse_iterator node_rend(uint16_t idx = -1) const { return const_reverse_iterator(node_begin()); }
+            const_reverse_iterator node_crend(uint16_t idx = -1) const { return node_rend(); }
             // ===============================
 
             /**
@@ -509,7 +584,7 @@ namespace mlc {
             reference end() { 
 
                 if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
-                static_assert(data.end().get() != nullptr);
+                assert(data.end().get() != nullptr);
                 return *data.end().get(); 
             }
 
@@ -568,10 +643,53 @@ namespace mlc {
                 assert(data.crend().get() != nullptr);
                 return *data.crend().get(); 
             }
-            // ===================================    
+            // ===================================
+        protected:
+            /** ------------------------------------
+             * @brief Function that fixes the linkage for the linked list by operating on the `cached_root`
+             *        We cannot use `root` directly as it is used in other operations. 
+             * 
+             * @note Run time complexity will always be O(n^2) because it is doing a deep fix 
+             * 
+             * @return Function will always return `nullptr` there is no need for it to return something when it just operates on the private data members
+            */
+            inline static void* broken_linkage() {
+
+                auto state = cached_root;
+
+                // Check for any breakage here
+                if (cached_root->prev->next) cached_root = cached_root->prev;
+                else cached_root->prev->next = cached_root;
+
+                // Make sure all previous nodes are linked
+                while (cached_root) {
+
+                    if (!cached_root->next) cached_root->next = state;
+                    cached_root = cached_root->prev;
+                    state = state->prev;
+
+                }
+
+                cached_root = std::move(state);
+
+                // Sync the root back 
+                root = std::move(cached_root);
+                std::cout << "\n=== BROKEN_LINKAGE() ===\n";
+                std::cout << "root.lvalue is : " << root->lvalue << std::endl; // Expect 67
+                std::cout << "root->next->lvalue is : " << root->next->lvalue << std::endl; // Expect 45
+                std::cout << "root->next->next->lvalue is : " << root->next->next->lvalue << std::endl; // Expect 90
+                std::cout << "root->next->next->next->lvalue is : " << root->next->next->next->lvalue << std::endl; // Expect 10
+                std::cout << "=============================\n";
+                
+
+
+                return nullptr;
+            };
+
         private:
 
-            inline static intrusive_dense_list_node<T>* root;
+            inline static intrusive_dense_list_node<T>* root = nullptr;
+            inline static intrusive_dense_list_node<T>* cached_root = nullptr;
             inline static std::vector<intrusive_dense_list_node<T>*> data;
     };
 
