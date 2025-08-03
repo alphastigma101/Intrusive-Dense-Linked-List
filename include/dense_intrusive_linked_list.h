@@ -76,7 +76,7 @@ namespace mlc {
 
                 std::cout << "current_node.lvaue is : " << current_node->lvalue << std::endl;
                 if (current_node->next) std::cout << "current_node->next lvalue is : " << current_node->next->lvalue << std::endl;
-                std::cout << "current_node->prev is : " << current_node->prev->lvalue << std::endl;
+                if (current_node->prev) std::cout << "current_node->prev is : " << current_node->prev->lvalue << std::endl;
 
             }
 
@@ -175,14 +175,12 @@ namespace mlc {
             // Indicing Support
             const_reference operator[](uint16_t index) {
 
+
                 // Update the backend 
                 if (intrusive_dense_list_iterator<T>::data.empty()) {
 
                     intrusive_dense_list_iterator<T>::data.swap(intrusive_dense_list<T>::data);
-                    intrusive_dense_list_iterator<T>::data.at(static_cast<size_t>(index)) = current_node;
-                    // Vector either should contain share_ptr's or unique_ptr's 
-                    // Looks like if I am able to wrap a shared_ptr around the raw pointer that the unique_ptr is managing, it will keep it alive
-                    std::unique_ptr<node_type> temp = std::make_unique<node_type>(*current_node);
+                    intrusive_dense_list_iterator<T>::data.at(static_cast<size_t>(index)) = std::make_shared<node_type>(*current_node);
 
                 }
 
@@ -207,9 +205,8 @@ namespace mlc {
         
         private:
 
-            inline static std::vector<intrusive_dense_list_node<T>*> data; // Test to see if raw pointers work first. Both data data members should be converted into shared_ptr's
+            inline static std::vector<std::shared_ptr<const intrusive_dense_list_node<T>>> data;
             node_type* current_node = nullptr; // This must stay raw. 
-            inline static node_type* cached_node = nullptr;
     };
 
     //template <typename T>
@@ -271,7 +268,19 @@ namespace mlc {
              * @return nothing
              * 
             */
-            void insert(uint16_t idx, reference node) { data.insert(data.begin() + idx, &node); }
+            void insert(uint16_t idx, reference node) { 
+                
+                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
+                data.insert(data.begin() + idx, &node); 
+            }
+
+            inline static iterator at(uint16_t idx) {
+
+                static std::shared_ptr<reference> node = std::make_shared<reference>(*data.at(static_cast<size_type>(idx)));
+                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
+                
+                return iterator(*node);
+            }
 
             /** ------------------------------------------------------------------
              * @brief Inserts a node at the given location, moving the previous
@@ -343,9 +352,11 @@ namespace mlc {
             */
             void push_back(reference node) {
 
+                std::cout << "\n==== DEBUGGING PUSH_BACK() ====\n";
                 if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 root = std::make_shared<reference>(node);
-                data.push_back(root.get());
+                std::cout << "root value is : " << root->lvalue << std::endl;
+                data.push_back(root);
 
             }
 
@@ -503,7 +514,8 @@ namespace mlc {
 
                 }
 
-                return iterator(*root->next);
+                if (root->next) return iterator(*root->next);
+                return iterator(*root);
             }
             const_iterator node_begin(uint16_t idx = -1) const { return const_iterator(*root->next);  }
             const_iterator node_cbegin(uint16_t idx = -1) const { return node_begin(); }
@@ -681,6 +693,7 @@ namespace mlc {
                 }
 
                 // Shift it to the begining
+                // TODO: Shifting won't work. This will need to be debugged
                 while(c_state->prev) { c_state = c_state->prev; }
 
                 
@@ -691,7 +704,7 @@ namespace mlc {
         private:
 
             inline static std::shared_ptr<intrusive_dense_list_node<T>> root;            
-            inline static std::vector<intrusive_dense_list_node<T>*> data;
+            inline static std::vector<std::shared_ptr<const intrusive_dense_list_node<T>>> data;
     };
 
 }
