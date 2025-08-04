@@ -1,7 +1,7 @@
 #include "include/dense_intrusive_linked_list.h"
 #include <stdexcept>
 
-mlc::intrusive_dense_list<int> list;
+static mlc::intrusive_dense_list<int> list;
 static mlc::intrusive_dense_list_node<int> root, new_root, node2, node3, node4, node5;
 
 static void TEST_CYCLING() {
@@ -15,7 +15,6 @@ static void TEST_CYCLING() {
         root.next = &node3;
         root.prev = &node2;
         root.next->prev = &root;
-        //node5.lvalue = 44;
 
         new_root.lvalue = 90;
         new_root.prev = &root;
@@ -71,13 +70,11 @@ static void TEST_CYCLING() {
 static void TEST_BACKEND() {
     std::cout << "\n=== TEST_BACKEND()===\n";
 
-    node5.lvalue = 44;
-
-
     // Add more data 
+    node5.lvalue = 44;
     list.push_back(node5);
 
-    // See if the data still exists 
+    // Test the at() method
     mlc::intrusive_dense_list_iterator<int> node_ele1 = list.at(0);
     mlc::intrusive_dense_list_iterator<int> node_ele2 = list.at(1);
     
@@ -119,6 +116,13 @@ static void TEST_BACKEND() {
 
 
     std::cout << node_ele2[0].lvalue << std::endl;
+}
+
+static void TEST_CONST() {
+    // Will need to grab all the const wrappers and need to be tested here
+
+    mlc::intrusive_dense_list_iterator<const int> deez_nuts();
+
 }
 
 

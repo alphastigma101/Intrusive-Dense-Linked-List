@@ -198,15 +198,25 @@ namespace mlc {
                 return erase(iterator(old_node));
             }
 
+            /** ----------------------------------
+             * @brief
+             * 
+             * 
+            */
             reference AsNodePointer() const
             {
                 return *current_node;
             }
         
         private:
-
+            // The backend data that is synced with the intrusive_dense_list backend data
             inline static std::vector<std::shared_ptr<const intrusive_dense_list_node<T>>> data;
-            node_type* current_node = nullptr; // This must stay raw. 
+
+            // Node that holds a raw pointer that is managed by a shared_ptr, and it must stay raw
+            node_type* current_node = nullptr;
+
+            // A cached node that can be used to update the current node 
+            inline static std::shared_ptr<const node_type> cached_node;
     };
 
     //template <typename T>
@@ -352,10 +362,8 @@ namespace mlc {
             */
             void push_back(reference node) {
 
-                std::cout << "\n==== DEBUGGING PUSH_BACK() ====\n";
                 if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 root = std::make_shared<reference>(node);
-                std::cout << "root value is : " << root->lvalue << std::endl;
                 data.push_back(root);
 
             }
