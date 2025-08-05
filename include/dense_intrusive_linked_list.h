@@ -1,3 +1,4 @@
+
 #ifndef __DENSE_INTRUSIVE_LINKED_LIST__
 #define __DENSE_INTRUSIVE_LINKED_LIST__
 
@@ -173,21 +174,7 @@ namespace mlc {
             }
 
             // Indicing Support
-            const_reference operator[](uint16_t index) {
-
-
-                // Update the backend 
-                if (intrusive_dense_list_iterator<T>::data.empty()) {
-
-                    intrusive_dense_list_iterator<T>::data.swap(intrusive_dense_list<T>::data);
-                    intrusive_dense_list_iterator<T>::data.at(static_cast<size_t>(index)) = std::make_shared<node_type>(*current_node);
-
-                }
-
-                // TODO: Executing test_dense_list causes a segfault here, but when executing ./mem_check, there is no segfaults what so ever
-
-                return static_cast<reference>(*current_node);
-            } 
+            node_type operator[](uint16_t index) { return static_cast<node_type>(*current_node); } 
             
             /**
              * Erases a node from this list.
@@ -209,14 +196,11 @@ namespace mlc {
             }
         
         private:
-            // The backend data that is synced with the intrusive_dense_list backend data
-            inline static std::vector<std::shared_ptr<const intrusive_dense_list_node<T>>> data;
-
             // Node that holds a raw pointer that is managed by a shared_ptr, and it must stay raw
             node_type* current_node = nullptr;
 
             // A cached node that can be used to update the current node 
-            inline static std::shared_ptr<const node_type> cached_node;
+            //inline static std::shared_ptr<const node_type> cached_node;
     };
 
     //template <typename T>
@@ -259,7 +243,10 @@ namespace mlc {
             using const_iterator = intrusive_dense_list_iterator<const value_type>;
             using reverse_iterator = std::reverse_iterator<iterator>;
             using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+            using node_type = intrusive_dense_list_iterator<T>::node_type;
 
+
+            // TODO: Function needs to be protected or private. 
             /** ---------------------------------------------------------------
              * @brief Function that inserts a node at a the begining of the vector
              *
@@ -278,20 +265,16 @@ namespace mlc {
              * @return nothing
              * 
             */
-            void insert(uint16_t idx, reference node) { 
-                
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
-                data.insert(data.begin() + idx, &node); 
-            }
+            void insert(uint16_t idx, reference node) {  data.insert(data.begin() + idx, &node); }
 
-            inline static iterator at(uint16_t idx) {
+            iterator at(uint16_t idx) {
 
-                static std::shared_ptr<reference> node = std::make_shared<reference>(*data.at(static_cast<size_type>(idx)));
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
+                static node_type* node = data.at(static_cast<size_type>(idx)).get();
                 
                 return iterator(*node);
             }
 
+            // TODO: Function needs to be protected or private. 
             /** ------------------------------------------------------------------
              * @brief Inserts a node at the given location, moving the previous
              * node occupant ahead of the one inserted.
@@ -308,7 +291,16 @@ namespace mlc {
                 existing_node.prev->next = &new_node;
                 existing_node.prev = &new_node;
 
-                root = std::make_shared<reference>(new_node);
+                // THIS IS BROKUS 
+
+                for (auto& it : data) {
+                    if (it.get() == root.get()) {
+                        auto temp = std::make_unique<node_type>(new_node);
+                        it.swap(temp);
+                        root = std::make_unique<node_type>(*it);
+                        break;
+                    }
+                }
 
                 // TODO: Make a wrapper around this function that executes heavy functions
                 broken_linkage();
@@ -316,6 +308,7 @@ namespace mlc {
                 return iterator(*root);
             }
 
+            // TODO: Function needs to be protected or private. 
             /** ----------------------------------------------------------------------------
              * @brief Inserts a new node into the list ahead of the position indicated.
              *
@@ -332,7 +325,7 @@ namespace mlc {
 
             /** --------------------------------------------------
              * @brief Add an entry to the start of the linked list.
-             *        If vector is empty, then we add the node to it.
+             *        We will get the last node aka data.at(data.size() - 1).get()
              * 
              * @param node Node to add to the list.
              * 
@@ -361,10 +354,9 @@ namespace mlc {
              * @return nothing
             */
             void push_back(reference node) {
-
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
-                root = std::make_shared<reference>(node);
-                data.push_back(root);
+        
+                root = std::make_unique<node_type>(node);
+                data.push_back(std::move(root));
 
             }
 
@@ -413,8 +405,8 @@ namespace mlc {
             */
             bool node_empty() const { 
 
-                assert(root.get() != nullptr);
-                return root->next == root.get(); 
+                assert(data.at(data.size() - 1).get() != nullptr);
+                return data.at(data.size() - 1).get()->next == data.at(data.size() - 1).get(); 
             }           
             bool empty() const { 
 
@@ -511,19 +503,11 @@ namespace mlc {
             */
             iterator node_begin(const uint16_t idx = -1) { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 //if (&idx) root = data.at(idx);
-                if (root.get() == nullptr) {
-                    std::cout << "\n===== NODE_BEGIN() ======\n";
-                    std::cout << "root is nullptr. Updating it with the front element of the backend!\n";
-                    //auto node = std::make_shared<reference>(*data.begin());
-                    exit(0);
-                    //root.swap(*node);
+                
 
-                }
-
-                if (root->next) return iterator(*root->next);
-                return iterator(*root);
+                if (data.at(data.size() - 1)->next) return iterator(*data.at(data.size() - 1)->next);
+                return iterator(*data.at(data.size() - 1));
             }
             const_iterator node_begin(uint16_t idx = -1) const { return const_iterator(*root->next);  }
             const_iterator node_cbegin(uint16_t idx = -1) const { return node_begin(); }
@@ -586,7 +570,6 @@ namespace mlc {
             // ==== BACKEND INTERFACE =====
             reference begin() { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 auto node = std::move(*data.begin());
                 assert(node.get() != nullptr);
                 return *node; 
@@ -594,7 +577,6 @@ namespace mlc {
 
             const reference begin() const { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 auto node = *data.begin();
                 assert(node.get() != nullptr);
                 return *node; 
@@ -602,7 +584,6 @@ namespace mlc {
 
             const reference cbegin() const { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 auto node = *data.cbegin();
                 assert(node.get() != nullptr);
                 return *node; 
@@ -610,63 +591,54 @@ namespace mlc {
 
             reference end() { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 assert(data.end().get() != nullptr);
                 return *data.end().get(); 
             }
 
             const reference end() const { 
                 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 assert(data.end().get() != nullptr);
                 return *data.end().get(); 
             }
 
             const reference cend() const { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 assert(data.cend().get() != nullptr);
                 return *data.cend().get(); 
             }
 
             reference rbegin() { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 assert(data.rbegin().get() != nullptr);
                 return *data.rbegin().get(); 
             }
 
             reference rbegin() const { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 static_assert(data.rbegin().get() != nullptr);
                 return *data.rbegin().get(); 
             }
 
             reference crbegin() const {
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 assert(data.rbegin().get() != nullptr);
                 return *data.rbegin().get(); 
             }
 
             reference rend() { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 static_assert(data.rend().get() != nullptr);
                 return *data.rend().get(); 
             }
 
             const reference rend() const { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 assert(data.rend().get() != nullptr);
                 return *data.rend().get(); 
             }
 
             const reference crend() const { 
 
-                if (intrusive_dense_list<T>::data.size() < intrusive_dense_list_iterator<T>::data.size()) intrusive_dense_list<T>::data.swap(intrusive_dense_list_iterator<T>::data);
                 assert(data.crend().get() != nullptr);
                 return *data.crend().get(); 
             }
@@ -682,10 +654,10 @@ namespace mlc {
              * 
              * @return Function will always return `nullptr` there is no need for it to return something when it just operates on the private data members
             */
-            inline static void* broken_linkage() {
+            void* broken_linkage() {
 
-                reference* c_state = root.get();
-                reference* p_state = c_state;
+                node_type* c_state = data.at(data.size() - 1).get();
+                node_type* p_state = c_state;
 
                 // Check for any breakage here
                 if (p_state->prev->next) p_state = p_state->prev;
@@ -702,7 +674,7 @@ namespace mlc {
 
                 // Shift it to the begining
                 // TODO: Shifting won't work. This will need to be debugged
-                while(c_state->prev) { c_state = c_state->prev; }
+                //while(c_state->prev) { c_state = c_state->prev; }
 
                 
                 return nullptr;
@@ -711,8 +683,8 @@ namespace mlc {
 
         private:
 
-            inline static std::shared_ptr<intrusive_dense_list_node<T>> root;            
-            inline static std::vector<std::shared_ptr<const intrusive_dense_list_node<T>>> data;
+            inline static std::unique_ptr<node_type> root;            
+            std::vector<std::unique_ptr<node_type>> data;
     };
 
 }

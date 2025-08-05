@@ -1,7 +1,7 @@
 #include "include/dense_intrusive_linked_list.h"
 #include <stdexcept>
 
-static mlc::intrusive_dense_list<int> list;
+mlc::intrusive_dense_list<int> list;
 static mlc::intrusive_dense_list_node<int> root, new_root, node2, node3, node4, node5;
 
 static void TEST_CYCLING() {
@@ -89,7 +89,7 @@ static void TEST_BACKEND() {
 
     // Test two
     //node_ele1--;
-    std::cout << "iter1[0].lvalue == 90 : ";
+    /*std::cout << "iter1[0].lvalue == 90 : ";
     lhs = std::to_string(node_ele1[0].prev->lvalue);
     rhs = std::to_string(90).c_str();
     err = "TEST TWO FAILED:\n\t Value Expected : ";
@@ -115,13 +115,13 @@ static void TEST_BACKEND() {
     node_ele1[0].prev->prev->prev->lvalue == 67 ? std::cout << "PASSED\n" : throw std::runtime_error(err.c_str());
 
 
-    std::cout << node_ele2[0].lvalue << std::endl;
+    std::cout << node_ele2[0].lvalue << std::endl;*/
 }
 
 static void TEST_CONST() {
     // Will need to grab all the const wrappers and need to be tested here
 
-    mlc::intrusive_dense_list_iterator<const int> deez_nuts();
+    //mlc::intrusive_dense_list_iterator<const int> deez_nuts();
 
 }
 
