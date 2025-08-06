@@ -69,7 +69,7 @@ namespace mcl {
             using node_pointer = node_type*;
             using node_reference = node_type&;
 
-            intrusive_list_iterator() = default;
+
             intrusive_list_iterator(const intrusive_list_iterator& other) = default;
             intrusive_list_iterator& operator=(const intrusive_list_iterator& other) = default;
 

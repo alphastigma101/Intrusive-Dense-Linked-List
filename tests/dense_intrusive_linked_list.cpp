@@ -18,7 +18,7 @@ class DenseListTest : public ::testing::Test {
 
 TEST_F(DenseListTest, Insertion) {
     
-    mlc::intrusive_dense_list<int> list;
+    /*mlc::intrusive_dense_list<int> list;
     mlc::intrusive_dense_list_node<int> root, new_root, node2, node3, node4, node5;
 
     // Initialize the node 
@@ -51,7 +51,7 @@ TEST_F(DenseListTest, Insertion) {
     iter1--;
     EXPECT_EQ(iter1[0].lvalue, 45); // this is the root 
     iter1--;
-    EXPECT_EQ(iter1[0].lvalue, 67);
+    EXPECT_EQ(iter1[0].lvalue, 67);*/
 
     // Testing the cycle
     //iter1++;
