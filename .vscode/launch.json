@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/test_main_dense_list",
+            "program": "${workspaceFolder}/test_dense_list",
             "args" : [],
             //"args": ["--target", "target/Muddy WarZone.png", "--tiles", "16", "--source", "source/testing"],
             "stopAtEntry": false,

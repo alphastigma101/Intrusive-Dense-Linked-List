@@ -10,9 +10,15 @@
 
 #include <memory>
 #include <vector>
+#include <type_traits>
+#include <thread>
+//#include "assert.hpp"
 
-#include <iostream>
-#include <string>
+#include <iostream> // This will need to go
+#include <string> // This will need to go 
+#include <cassert>
+
+
 
 namespace mlc {
 
@@ -25,9 +31,31 @@ namespace mlc {
     template<typename T>
     class intrusive_dense_list_node;
 
+    template<typename T>
+    class threading_iterator;
+
+    template<typename T>
+    class threading_iterator : public std::thread {
+
+        public:
+
+            // Gonna need a constructor that captures functions
+            // threading_iterator(template_function_here) {
+            //  Create the thread and append it to the vector 
+            //}
+
+            // Gonna need a constructor that captures the operators and uses the operators here instead for threading. Add it to the vector
+            ~threading_iterator() noexcept {
+
+            }
+            // Create a emthod called start that automatically creates another pid, and keeps track of the pid's and kills them when they are done 
+            // Once they are all done, kill the process itself 
+
+    };
+
 
     template <typename T>
-    class intrusive_dense_list_node : public std::enable_shared_from_this<intrusive_dense_list_node<T>> {
+    class intrusive_dense_list_node  {
 
         friend class intrusive_dense_list<T>;
         friend class intrusive_dense_list_iterator<T>;
@@ -35,11 +63,12 @@ namespace mlc {
         public:
 
             T lvalue;
-            bool at_center = false;
+
+            // Constructs a node type
             explicit intrusive_dense_list_node(T val) : lvalue(val) {}
-            explicit intrusive_dense_list_node(bool center) : at_center(center) { lvalue = {}; }
 
         private:
+
             std::shared_ptr<intrusive_dense_list_node<T>> next;
             std::shared_ptr<intrusive_dense_list_node<T>> prev;
     
@@ -48,17 +77,10 @@ namespace mlc {
     template<typename T>
     class intrusive_dense_list_iterator {
 
-        std::shared_ptr<intrusive_dense_list_node<T>> current;
-
         public:
 
             using iterator_category = std::bidirectional_iterator_tag;
-            using difference_type = std::ptrdiff_t;
             using value_type = T;
-            using pointer = value_type*;
-            using const_pointer = const value_type*;
-            using reference = value_type&;
-            using const_reference = const value_type&;
 
             // If value_type is const, we want "const intrusive_list_node<value_type>", not "intrusive_list_node<const value_type>"
             using node_type = std::conditional_t<std::is_const<value_type>::value,
@@ -67,11 +89,11 @@ namespace mlc {
 
             intrusive_dense_list_iterator(const intrusive_dense_list_iterator& other) = default;
             intrusive_dense_list_iterator& operator=(const intrusive_dense_list_iterator& other) = default;
-            explicit intrusive_dense_list_iterator(std::shared_ptr<node_type> node) : current(node) {}
+            explicit intrusive_dense_list_iterator(node_type* node) : current(node) {}
 
             intrusive_dense_list_iterator& operator++()
             {
-                if (current) current = current->next;
+                if (current) current = current->next.get();
                 else return *this;
                 return *this;
             }
@@ -79,7 +101,7 @@ namespace mlc {
             intrusive_dense_list_iterator& operator--() 
             {
                 if (!current) return *this; 
-                else current = current->prev;
+                else current = current->prev.get();
                 return *this;
             }
 
@@ -97,14 +119,23 @@ namespace mlc {
                 return it;
             }
 
-            node_type operator[](uint16_t index) { 
+            node_type operator[](uint16_t index) {  return static_cast<node_type>(*current); } 
 
-                intrusive_dense_list<T>::data.at(static_cast<size_t>(index)) = current;
-                return static_cast<node_type>(*current);
-            } 
+            bool operator==(const intrusive_dense_list_iterator& other) const
+            {
+                return current == other.node;
+            }
 
-            //bool operator!=(const iterator& other) const { return current != other.current; }
+            bool operator!=(const intrusive_dense_list_iterator& other) const
+            {
+                return !operator==(other);
+            }
+
             
+        private:
+
+            node_type* current = nullptr;
+
     };
 
     template <typename T>
@@ -112,128 +143,327 @@ namespace mlc {
 
         friend class intrusive_dense_list_iterator<T>;
 
-        private:
-
-            inline static std::vector<std::shared_ptr<intrusive_dense_list_node<T>>> data;
-            std::shared_ptr<intrusive_dense_list_node<T>> head;
-            std::shared_ptr<intrusive_dense_list_node<T>> tail;
-
         public:
 
-            using difference_type = std::ptrdiff_t;
             using size_type = std::size_t;
             using value_type = T;
-            using pointer = value_type*;
-            using const_pointer = const value_type*;
-            using reference = value_type&;
-            using const_reference = const value_type&;
             using iterator = intrusive_dense_list_iterator<value_type>;
             using const_iterator = intrusive_dense_list_iterator<const value_type>;
             using reverse_iterator = std::reverse_iterator<iterator>;
             using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-
+            using node_type = intrusive_dense_list_iterator<T>::node_type;
+            
+            /** ---------------------------------------------------------------------------------------
+             * @brief Method that gets the the linked list from the array from whatever was added last 
+             * 
+             * 
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
             iterator begin() {
-                // Need an assert that makes sure that the array is not empty
-                return iterator(data.at(data.size() - 1));
+        
+                assert(!data.empty());
+                auto node = *data.begin();
+                return iterator(node.get());
+            }
 
-            };
+            /** ---------------------------------------------------------------------------------------
+             * @brief 
+             * 
+             * @note
+             * 
+             * @return
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+            const_iterator begin() const { 
+                
+                assert(!data.empty()); 
+                return const_iterator(*data.begin());
+            }
 
+            const_iterator cbegin() const { 
+
+                assert(!data.empty());
+                auto node = *data.cbegin();
+
+                return const_iterator(node.get()); 
+            }
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief 
+             * 
+             * @note
+             * 
+             * @return
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+            iterator end() { 
+                
+                assert(!data.empty() && data.size() > 1); 
+                return iterator(*data.end());
+            }
+            
+            /** ---------------------------------------------------------------------------------------
+             * @brief 
+             * 
+             * @note
+             * 
+             * @return
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+            const_iterator end() const { 
+
+                assert(!data.empty() && data.size() > 1); 
+                return const_iterator(*data.end());
+            }
+
+            const_iterator cend() const { 
+
+                assert(!data.empty() && data.size() > 1); 
+                auto node = *data.cend();
+                return const_iterator(node.get()); 
+            }
+
+            reverse_iterator rbegin() { return reverse_iterator(end()); }
+            const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
+            const_reverse_iterator crbegin() const { return rbegin(); }
+
+            reverse_iterator rend() { return reverse_iterator(begin()); }
+            const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+            const_reverse_iterator crend() const { return rend(); }        
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief
+             * 
+             * @note 
+             * 
+             * @return 
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
             iterator at(uint16_t index) {
-                // Need an assert that makes sure that the arrary is not less than index
-                return iterator(data.at(index));
-            };
+                
+                assert(index < data.size());
+                auto& node = data.at(index);
+                return iterator(node.get());
+            }
 
-            // Inserts nodes beging the root, but in the middle
+            void insert(uint16_t index, T value) {
+
+                std::shared_ptr<node_type> new_node = std::make_shared<node_type>(value);
+                if (index < data.size()) data.at(index).swap(new_node);
+                else data.insert(data.begin() + index, data.end());
+            }
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief Inserts nodes at behind the root, but in the middle
+             * 
+             * @note Operates on the desired element in the vector. To operate on the nodes itself and add the series of nodes to the backend.
+             *       You would use the node methods and then use the backend swap method 
+             * 
+             * @return nothing
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
             void insert_before(uint16_t index, T value) {
                 
-                if (index < data.size()) {
+                assert(index < data.size());
 
-                    auto new_node = std::make_shared<intrusive_dense_list_node<T>>(value);     
-                    auto current_node = data.at(index);
-                  
-                    if (current_node->next) {
-
-                        auto old_next = current_node->next; 
-                        auto original_prev = old_next->prev;
-                         
-                        new_node->prev = original_prev;
-                        new_node->next = old_next;
-
-                        original_prev->next = new_node;
-                        old_next->prev = new_node;
-                        
-                        static auto update_tail_and_head = [&]() -> void {
-
-                            // Update the head 
-                            auto find_head = current_node;
-                            while (find_head->prev) { find_head = find_head->prev; }
-                            head = find_head;
-
-                            // Update the tail
-                            auto find_tail = current_node;
-                            while (find_tail->next) { find_tail = find_tail->next; }
-                            tail = find_tail;
-
-                            return;
-                            
-                        };
-        
-                        update_tail_and_head();
-
-                        create_bi_node();
-
-                        data.at(index).swap(current_node);
-
-                        return;
-
-                    }
-                    else if (!current_node->next) {
-                        
-                        current_node->prev = new_node;
-                        new_node->next = current_node;
-
-                        data.at(index).swap(new_node);
-
-                        return;
-                    }
-                }
-            };
-
-
-            void insert_after(uint16_t index, T value) {
+                auto new_node = std::make_shared<node_type>(value);     
+                std::shared_ptr<node_type> current_node;
+                current_node.swap(data.at(static_cast<size_type>(index)));
                 
-                if (index < data.size()) {
-
-                    auto new_node = std::make_shared<intrusive_dense_list_node<T>>(value);
-                    auto current_node = data.at(index);
-                
-                    new_node->next = current_node;
-                    if (current_node->prev) {
-
-                        // Link with previous node if exists
-                        auto prev_node = current_node->prev;
-                        prev_node->next = new_node;
-                        new_node->prev = prev_node;
-
-                    } else head = new_node;
-                
-                    current_node->prev = new_node;
-                
-                    data.at(index) = current_node;
+                if (!current_node->next) {
                     
+                    current_node->prev = new_node;
+                    new_node->next = current_node;
+
+                    data.at(static_cast<size_type>(index)).swap(new_node);
+
+                    return;
                 }
                 
-            };
+                auto old_next = current_node->next; 
+                auto original_prev = old_next->prev;
+                    
+                new_node->prev = original_prev;
+                new_node->next = old_next;
 
-            // Push values back into the array
+                original_prev->next = new_node;
+                old_next->prev = new_node;
+
+                data.at(static_cast<size_type>(index)).swap(current_node);
+
+                return;
+            }
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief Inserts nodes at after the root, but in the middle
+             * 
+             * @note Operates on the desired element in the vector. To operate on the nodes itself and add the series of nodes to the backend.
+             *       You would use the node methods and then use the backend swap method 
+             * 
+             * @return nothing
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+           void insert_after(uint16_t index, T value) {
+
+                assert(index < data.size());
+                auto new_node = std::make_shared<node_type>(value);
+                
+                std::shared_ptr<node_type> current_node;
+                current_node.swap(data.at(static_cast<size_type>(index)));
+                
+                new_node->prev = current_node;
+                new_node->next = current_node->next;
+                
+                if (current_node->next) current_node->next->prev = new_node;
+                
+                current_node->next = new_node;
+                
+                data.at(static_cast<size_type>(index)).swap(current_node);
+                return;
+            }
+
+            void insert_begining(uint16_t index, T value) {
+
+                assert(index < data.size());
+                auto new_node = std::make_shared<node_type>(value);  
+
+                std::shared_ptr<node_type> current_node; 
+                current_node.swap(data.at(static_cast<size_type>(index)));
+
+                while (current_node->prev) current_node = current_node->prev;
+
+                new_node->next = current_node->next;
+                new_node->prev = current_node->prev;
+
+                debug_node(new_node, true);
+
+                data.at(static_cast<size_type>(index)).swap(new_node);
+
+                return;
+            }
+
+            void insert_end(uint16_t index, T value) {
+
+                assert(index < data.size());
+                auto new_node = std::make_shared<node_type>(value); 
+
+                std::shared_ptr<node_type> current_node;
+                current_node.swap(data.at(static_cast<size_type>(index)));
+
+                while (current_node->next) current_node = current_node->next;
+
+                auto old_tail = current_node; 
+
+                old_tail->next = new_node;
+                new_node->prev = old_tail;
+
+                debug_node(old_tail, true);
+
+                data.at(index).swap(old_tail);
+
+                return;
+            }
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief
+             * 
+             * @note 
+             * 
+             * @return 
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
             void push_back(T value) {
 
-                auto new_node = std::make_shared<intrusive_dense_list_node<T>>(value);
+                auto new_node = std::make_shared<node_type>(value);
                 data.push_back(new_node);
-            };
+
+            }
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief
+             * 
+             * @note 
+             * 
+             * @return 
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+            void pop_back() {
+
+                assert(!data.empty());
+                data.pop_back();
+                data.shrink_to_fit();
+
+            }
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief
+             * 
+             * @note 
+             * 
+             * @return 
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+            void erase(uint16_t index) {
+
+                assert(data.size() > 1 && !data.empty());
+                data.erase(data.begin() + index, data.end());
+            }
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief
+             * 
+             * @note 
+             * 
+             * @return 
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+            iterator front() {
+
+                assert(!data.empty());
+                return iterator(data.front());
+            }
+
+            /** ---------------------------------------------------------------------------------------
+             * @brief
+             * 
+             * @note 
+             * 
+             * @return 
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+            iterator back() {
+
+                assert(!data.empty()); 
+                return iterator(data.back());
+            }
+            
+            /** ---------------------------------------------------------------------------------------
+             * @brief
+             * 
+             * @note 
+             * 
+             * @return 
+             * 
+             * -----------------------------------------------------------------------------------------
+            */
+            value_type get_value(uint16_t index) { return data.at(static_cast<size_t>(index))->lvalue; }
+  
 
         protected:
-
+                  
+            // This needs to be moved somewhere else 
             static void debug_node(std::shared_ptr<intrusive_dense_list_node<T>> node, bool is_forward = false) {
                 std::cout << "\n\n=============================================\n";
                 std::cout << "===          NODE DEBUGGER              ===\n";
@@ -309,18 +539,10 @@ namespace mlc {
                 std::cout << "=============================================\n\n";
             };
 
-            void create_bi_node() {
-               
-                // Make a new node that will serve as the bi-directional node
-                std::shared_ptr<intrusive_dense_list_node<T>> current_node = 
-                    std::make_shared<intrusive_dense_list_node<T>>(true);
+            
+        private:
 
-                current_node->next = head;
-                current_node->prev = tail;
-
-                data.at(data.size() - 1).swap(current_node);
-                
-            }
+            inline static std::vector<std::shared_ptr<node_type>> data;
     };
  
 };

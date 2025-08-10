@@ -1,8 +1,10 @@
 #include "include/dense_intrusive_linked_list.h"
 #include <stdexcept>
 
-mlc::intrusive_dense_list<int> list;
-//static mlc::intrusive_dense_list_node<int> root, new_root, node2, node3, node4, node5;
+static mlc::intrusive_dense_list<int> list;
+
+
+
 
 
 
@@ -17,6 +19,8 @@ int main(void) {
     list.insert_before(0, 100);
     list.insert_before(0, 200);
     list.insert_before(0, 300);
+    //list.insert_end(0, 90);
+    //list.make_bi_node();
 
     mlc::intrusive_dense_list_iterator<int> iter1 = list.begin();
     std::cout << "iter1 value is : " << iter1[0].lvalue << std::endl;
@@ -49,6 +53,16 @@ int main(void) {
     iter1--;
     std::cout << "iter1 value is : " << iter1[0].lvalue << std::endl;
 
+    /*list.push_back(199);
+    list.insert_before(1, 700);
+    mlc::intrusive_dense_list_iterator<int> iter2 = list.begin();
+    std::cout << "iter2 value is : " << iter2[1].lvalue << std::endl;
+    iter2++;
+    std::cout << "iter2 value is : " << iter2[1].lvalue << std::endl;
+    
+    std::cout << "iter1 value is : " << iter1[0].lvalue << std::endl;
+    iter1++;
+    std::cout << "iter1 value is : " << iter1[0].lvalue << std::endl;*/
 
 
 

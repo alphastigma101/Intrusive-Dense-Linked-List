@@ -153,7 +153,7 @@ namespace mcl {
              *
              * @param location The location to insert the node.
              * @param new_node The node to add.
-             */
+            */
             iterator insert(iterator location, pointer new_node)
             {
                 return insert_before(location, new_node);

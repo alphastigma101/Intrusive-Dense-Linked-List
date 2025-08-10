@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "../include/dense_intrusive_linked_list.h"
 
-
+static mlc::intrusive_dense_list<int> list;
 
 class DenseListTest : public ::testing::Test {
 
@@ -17,144 +17,223 @@ class DenseListTest : public ::testing::Test {
 };
 
 TEST_F(DenseListTest, Insertion) {
+
+    list.push_back(10);
+    list.insert_before(0, 20);
+    list.insert_before(0, 30);
+    list.insert_before(0, 50);
+    list.insert_before(0, 100);
+    list.insert_before(0, 200);
+    list.insert_before(0, 300);
+
+    mlc::intrusive_dense_list_iterator<int> iter1 = list.begin();
+
+    EXPECT_EQ(iter1[0].lvalue, 20);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 300);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 200);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 100);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 50);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 30);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 10);
+
+    // Testing to see if the nodes are different 
+    list.push_back(199);
+    list.insert_before(1, 700);
+    list.insert_before(1, 900);
+    list.insert_before(1, 1000);
+    list.insert_before(1, 5000);
+
+    mlc::intrusive_dense_list_iterator<int> iter2 = list.at(1);
+    EXPECT_EQ(iter2[1].lvalue, 700);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 5000);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 1000);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 900);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 199);
+
+}
+
+TEST_F(DenseListTest, Cycling) {
+
+    // Test at() method 
+    mlc::intrusive_dense_list_iterator<int> iter1 = list.at(0);
+    mlc::intrusive_dense_list_iterator<int> iter2 = list.at(1);
+
+    EXPECT_EQ(iter1[0].lvalue, 20);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 300);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 200);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 100);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 50);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 30);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 10);
     
-    /*mlc::intrusive_dense_list<int> list;
-    mlc::intrusive_dense_list_node<int> root, new_root, node2, node3, node4, node5;
-
-    // Initialize the node 
-    root.lvalue = 45;
-    node2.lvalue = 67;
-    node3.lvalue = 10;
-    root.next = &node3;
-    root.prev = &node2;
-    root.next->prev = &root;
-    //node5.lvalue = 44;
-
-    new_root.lvalue = 90;
-    new_root.prev = &root;
-    new_root.next = &node4;
-
-
-    // Test push_back 
-    list.push_back(root);
-    list.push_node_front(new_root);
-
-    // Test begin
-    mlc::intrusive_dense_list_iterator<int> iter1 = list.node_begin();
-    // Should start at root but it starts at the end of the linked list for some reason
-    //EXPECT_EQ(iter1[0].lvalue, 45);
-
-    // Test the cycling
     EXPECT_EQ(iter1[0].lvalue, 10);
     iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 30);
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 50);
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 100);
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 200);
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 300);
+    iter1--;
+    EXPECT_EQ(iter1[0].lvalue, 20);
+
+    EXPECT_EQ(iter1[0].lvalue, 20);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 300);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 200);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 100);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 50);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 30);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 10);
+
+    EXPECT_EQ(iter2[1].lvalue, 700);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 5000);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 1000);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 900);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 199);
+
+    EXPECT_EQ(iter2[1].lvalue, 199);
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 900);
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 1000);
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 5000);
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 700);
+
+    EXPECT_EQ(iter2[1].lvalue, 700);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 5000);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 1000);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 900);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 199);
+
+}
+
+TEST_F(DenseListTest, InsertAfter) {
+
+    list.insert_after(0, 40);
+    list.insert_after(0, 60);
+    list.insert_after(0, 80);
+    list.insert_after(0, 90);
+    list.insert_after(0, 110);
+    list.insert_after(0, 120);
+
+    mlc::intrusive_dense_list_iterator<int> iter1 = list.at(0);
+
+    EXPECT_EQ(iter1[0].lvalue, 10);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 120);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 110);
+    iter1++;
     EXPECT_EQ(iter1[0].lvalue, 90);
-    iter1--;
-    EXPECT_EQ(iter1[0].lvalue, 45); // this is the root 
-    iter1--;
-    EXPECT_EQ(iter1[0].lvalue, 67);*/
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 80);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 60);
+    iter1++;
+    EXPECT_EQ(iter1[0].lvalue, 40);
 
-    // Testing the cycle
-    //iter1++;
-    //EXPECT_EQ(iter1[0].lvalue, 45);
+    list.insert_after(1, 130);
+    list.insert_after(1, 160);
+    list.insert_after(1, 190);
+    list.insert_after(1, 225);
 
+    mlc::intrusive_dense_list_iterator<int> iter2 = list.at(1);
+    EXPECT_EQ(iter2[1].lvalue, 199);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 225);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 190);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 160);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 130);
 
-    // Test out of range
-    //EXPECT_THROW(iter1[1], std::out_of_range);
-
-    // Test push_back
-    //list.push_back(root);
-    //EXPECT_NE(iter1[1], nullptr); 
-
-    // Test insert 
-    /*list.insert(0, node3);
-    EXPECT_EQ(list[0].lvalue, 10);
-    EXPECT_EQ(list[0].next, nullptr);
-    EXPECT_EQ(list[0].prev, nullptr);*/
-
-}
-
-/*TEST_F(DenseListTest, Erase) {
-    
-    mlc::intrusive_dense_list<int> list;
-    mlc::intrusive_dense_list_node<int> root;
-    mlc::intrusive_dense_list_node<int> node2;
-    mlc::intrusive_dense_list_node<int> node3;
-
-    // Initialize the node 
-    root.lvalue = 45;
-    node2.lvalue = 67;
-    node3.lvalue = 10;
-    root.next = &node3;
-    root.prev = &node2;
-
-    // Test erase
-    list.push_front(root);
-    list.erase(0);
-    EXPECT_THROW(list[0], std::out_of_range); 
-
-    // test pop_front
-    list.push_front(root);
-    list.push_back(node2);
-    list.pop_front();
-    EXPECT_NE(list[0].lvalue, 45);
-    EXPECT_EQ(list[0].lvalue, 67);
-
-    // Test pop_back
-    list.push_front(root);
-    list.push_back(node2);
-    list.pop_back();
-    EXPECT_THROW(list[1], std::out_of_range); 
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 199);
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 900);
+    iter2++;
+    EXPECT_EQ(iter2[1].lvalue, 199);
+    iter2--;
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 1000);
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 5000);
+    iter2--;
+    EXPECT_EQ(iter2[1].lvalue, 700);
 
 }
 
-TEST_F(DenseListTest, FrontAndBack) {
+
+TEST_F(DenseListTest, PushNodeBack) {
+
+    /*list.insert_end(0, 666);
+    list.insert_end(1, 1234);
+    list.insert_end(0, 2345);
+    list.insert_end(1, 5678);*/
+
+    mlc::intrusive_dense_list_iterator<int> iter2 = list.at(1);
+    mlc::intrusive_dense_list_iterator<int> iter1 = list.at(0);
     
-    mlc::intrusive_dense_list<int> list;
-    mlc::intrusive_dense_list_node<int> root;
-    mlc::intrusive_dense_list_node<int> node2;
-    mlc::intrusive_dense_list_node<int> node3;
-
-    // Initialize the node 
-    root.lvalue = 45;
-    node2.lvalue = 67;
-    node3.lvalue = 10;
-    root.next = &node3;
-    root.prev = &node2;
-
-    // Test front
-    list.push_front(root);
-    auto node = list.front();
-    EXPECT_EQ(node.lvalue, 45); 
-
-    // test back
-    list.push_back(node2);
-    auto back = list.back();
-    EXPECT_EQ(back.lvalue, 67);
+   
 
 }
 
-TEST_F(DenseListTest, Swap) {
+TEST_F(DenseListTest, PushNodeFront) {
     
-    mlc::intrusive_dense_list<int> list;
-    mlc::intrusive_dense_list<int> list2;
-    mlc::intrusive_dense_list_node<int> root;
-    mlc::intrusive_dense_list_node<int> node2;
-    mlc::intrusive_dense_list_node<int> node3;
-
-    // Initialize the root
-    root.lvalue = 45;
-    node2.lvalue = 67;
-    node3.lvalue = 10;
-    root.next = &node3;
-    root.prev = &node2;
+   /*list.insert_begining(0, 774);
+   list.insert_begining(1, 890);
+   list.insert_begining(0, 4987);
+   list.insert_begining(1, 224);*/
+   
+   mlc::intrusive_dense_list_iterator<int> iter2 = list.at(1);
+   mlc::intrusive_dense_list_iterator<int> iter1 = list.at(0);
 
 
-    // Test swap
-    list.push_front(root);
-    list.swap(list2);
-    EXPECT_TRUE(list[0] == nullptr);
+}
 
-}*/
+
+
+
+TEST_F(DenseListTest, Erase) {
+    
+
+}
 
 
 int main(int argc, char **argv) {
