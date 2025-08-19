@@ -19,8 +19,6 @@ int main(void) {
     list.insert_before(0, 100);
     list.insert_before(0, 200);
     list.insert_before(0, 300);
-    //list.insert_end(0, 90);
-    //list.make_bi_node();
 
     mlc::intrusive_dense_list_iterator<int> iter1 = list.begin();
     std::cout << "iter1 value is : " << iter1[0].lvalue << std::endl;

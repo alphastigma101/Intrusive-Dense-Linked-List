@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++20 -g -O0
+CXXFLAGS := -std=c++2b -g -O0
 LDFLAGS := -L ./tests -lgtest -lgtest_main -pthread
 
 
